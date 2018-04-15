@@ -1,11 +1,6 @@
 from __future__ import print_function
 # python 3
 
-"""modify from 
-https://github.com/aymericdamien/TensorFlow-Examples/blob/master/examples/3_NeuralNetworks/recurrent_network.py
-"""
-
-
 """ Recurrent Neural Network.
 A Recurrent Neural Network (LSTM) implementation example using TensorFlow library.
 This example is using the MNIST database of handwritten digits (http://yann.lecun.com/exdb/mnist/)
@@ -19,24 +14,10 @@ Project: https://github.com/aymericdamien/TensorFlow-Examples/
 
 import tensorflow as tf
 from tensorflow.contrib import rnn
+
 # Import MNIST data
-#from tensorflow.examples.tutorials.mnist import input_data
-#mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
-
-
-
-# -- 
-
-# import our own data 
-from data_prepare import *
-df_fb = load_data('FB')
-col = ['Date', ' Open', ' High', ' Low', ' Close', ' Volume']
-df_fb = df_fb[col]
-df_fb.columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']
-
-# ---
-
-
+from tensorflow.examples.tutorials.mnist import input_data
+mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
 
 '''
 To classify images using a recurrent neural network, we consider every image
