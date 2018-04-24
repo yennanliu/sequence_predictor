@@ -4,6 +4,9 @@
 import pandas as pd 
 import numpy as np
 import math
+#import matplotlib.pyplot as plt
+#%pylab inline
+
 
 # ML
 from sklearn.preprocessing import MinMaxScaler
@@ -43,7 +46,7 @@ def get_train_data(df):
 	#				 .median()[['lag_idle_day']]\
 	#				 .values
 	#dataset = df[['Volume','High','Open']].values.astype('float32')
-	dataset = df[['Volume']].values.astype('float32')
+	dataset = df[['Open']].values.astype('float32')
 	#print (shape(dataset))
 	print (dataset) 
 	return dataset
@@ -104,6 +107,7 @@ def one_input_LSTM(dataset):
 	testPredictPlot = np.empty_like(dataset)
 	testPredictPlot[:, :] = np.nan
 	testPredictPlot[len(trainPredict)+(look_back*2)+1:len(dataset)-1, :] = testPredict
+	return  dataset,trainPredict,testPredict,trainPredictPlot,testPredictPlot
 
 
 
@@ -114,7 +118,12 @@ if __name__ == '__main__':
 	df_FB = get_data('FB')
 	df_FB_ = col_fix(df_FB)
 	dataset = get_train_data(df_FB_)
-	one_input_LSTM(dataset)
+	dataset,trainPredict,testPredict,trainPredictPlot,testPredictPlot = one_input_LSTM(dataset)
+	# plot 
+	#plt.plot(trainPredictPlot)
+	#plt.plot(testPredictPlot)
+	#plt.plot( df_FB_[['Open']])
+
 
 
 
