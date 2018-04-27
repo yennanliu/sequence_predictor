@@ -199,9 +199,14 @@ def one_input_LSTM_model_3(dataset):
 	# expected input data shape: (batch_size, input_shape=(timesteps, data_dim))
 	model.add(LSTM(4, return_sequences=True,input_shape=(1, look_back)))
 	# add 5 stack hidden layers 
-	for epoch in range(5):
-		model.add(LSTM(4, return_sequences=True,input_shape=(1, look_back)))
-	model.add(LSTM(4, input_shape=(1, look_back)))
+	# -------------------------
+	model.add(LSTM(4, return_sequences=True,input_shape=(1, look_back)))
+	model.add(LSTM(4, return_sequences=True,input_shape=(1, look_back)))
+	model.add(LSTM(4, return_sequences=True,input_shape=(1, look_back)))
+	model.add(LSTM(4, return_sequences=True,input_shape=(1, look_back)))
+	model.add(LSTM(4, return_sequences=True,input_shape=(1, look_back)))
+	# -------------------------
+	model.add(LSTM(4))
 	model.add(Dense(1))
 	model.compile(loss='mean_squared_error', optimizer='adam')
 	model.fit(trainX, trainY, epochs=20, batch_size=1, verbose=2)
