@@ -30,41 +30,44 @@ def col_fix(df):
     print (df.head())
     return df 
 
+
 def train_test_split(df,col):
-	df_ = df.set_index('Date')
-	split_date  = pd.Timestamp('2016-01-01')
-	train = df_.loc[:split_date]
-	test = df_.loc[split_date:]
-	sc = MinMaxScaler()
-	train_sc = sc.fit_transform(train)
-	test_sc = sc.transform(test)
-	train_sc_df = pd.DataFrame(train_sc, columns=[col], index=train.index)
-	test_sc_df = pd.DataFrame(test_sc, columns=[col], index=test.index)
+    df_ = df_FB_.set_index('Date')
+    split_date  = pd.Timestamp('2016-01-01')
+    train = df_[col].loc[:split_date].reshape(-1, 1)
+    test = df_[col].loc[split_date:].reshape(-1, 1)
+    sc = MinMaxScaler()
+    train_sc = sc.fit_transform(train)
+    test_sc = sc.transform(test)
+    train_sc=train_sc.reshape(len(train_sc),)
+    test_sc=test_sc.reshape(len(test_sc),)
+    train_sc_df =pd.DataFrame(train_sc, columns=[col])
+    test_sc_df = pd.DataFrame(test_sc, columns=[col])
+    for s in range(1,2):
+        train_sc_df['X_{}'.format(s)] = train_sc_df[col].shift(s)
+        test_sc_df['X_{}'.format(s)] = test_sc_df[col].shift(s)
 
-	for s in range(1,2):
-		train_sc_df['X_{}'.format(s)] = train_sc_df[col].shift(s)
-		test_sc_df['X_{}'.format(s)] = test_sc_df[col].shift(s)
-	
-	X_train = train_sc_df.dropna().drop([col], axis=1)
-	y_train = train_sc_df.dropna().drop('X_1', axis=1)
+    X_train = train_sc_df.dropna().drop([col], axis=1)
+    y_train = train_sc_df.dropna().drop('X_1', axis=1)
 
-	X_test = test_sc_df.dropna().drop([col], axis=1)
-	y_test = test_sc_df.dropna().drop('X_1', axis=1)
+    X_test = test_sc_df.dropna().drop([col], axis=1)
+    y_test = test_sc_df.dropna().drop('X_1', axis=1)
 
-	X_train = X_train.as_matrix()
-	y_train = y_train.as_matrix()
+    X_train = X_train.as_matrix()
+    y_train = y_train.as_matrix()
 
-	X_test = X_test.as_matrix()
-	y_test = y_test.as_matrix()
+    X_test = X_test.as_matrix()
+    y_test = y_test.as_matrix()
 
-	return train, test,X_train,y_train,X_test, y_test
+    return train, test,X_train,y_train,X_test, y_test
+
 
 
 def SVR_model(X_train,y_train):
 	regressor = SVR(kernel='rbf')
 	regressor.fit(X_train, y_train)
 	y_pred = regressor.predict(X_test)
-	return y_pred
+	return y_pred, regressor
 
 
 def r2_score(r2, n, k):
@@ -81,9 +84,10 @@ if __name__ == '__main__':
 	df_FB = get_data('FB')
 	df_FB_ = col_fix(df_FB)
 	train, test,X_train,y_train,X_test, y_test =  train_test_split(df_FB_,'Open')
-	y_pred = SVR_model(X_train,y_train)
-	r2_test = r2_score(y_test, y_pred)
+	y_pred,regressor = SVR_model(X_train,y_train)
+	r2_test = r2_score(y_test, y_pred,1)
 	print(r2_test)
+	print (regressor.score(y_test, y_pred))
 
 
 
