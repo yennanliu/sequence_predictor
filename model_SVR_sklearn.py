@@ -63,14 +63,14 @@ def train_test_split(df,col):
 
 
 
-def SVR_model(X_train,y_train):
+def SVR_model(X_train,y_train,X_test):
 	regressor = SVR(kernel='rbf')
 	regressor.fit(X_train, y_train)
 	y_pred = regressor.predict(X_test)
 	return y_pred, regressor
 
 
-def r2_score(r2, n, k):
+def adj_r2_score(r2, n, k):
     return 1-((1-r2)*((n-1)/(n-k-1)))
 
 
@@ -84,8 +84,8 @@ if __name__ == '__main__':
 	df_FB = get_data('FB')
 	df_FB_ = col_fix(df_FB)
 	train, test,X_train,y_train,X_test, y_test =  train_test_split(df_FB_,'Open')
-	y_pred,regressor = SVR_model(X_train,y_train)
-	r2_test = r2_score(y_test, y_pred,1)
+	y_pred,regressor = SVR_model(X_train,y_train,X_test)
+	r2_test = r2_score(y_test, y_pred)
 	print(r2_test)
 	print (regressor.score(y_test, y_pred))
 
