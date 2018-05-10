@@ -64,8 +64,10 @@ def create_dataset(dataset, look_back=1):
 	return np.array(dataX), np.array(dataY)
 
 
-#------------------------
-# DL 
+#---------------------------------------
+
+#########  V1 ARCHITECTURE #########
+
 
 
 def one_input_LSTM_model_1(dataset):
@@ -235,8 +237,58 @@ def one_input_LSTM_model_3(dataset):
 	return  dataset,trainPredict,testPredict,trainPredictPlot,testPredictPlot
 
 
+#---------------------------------------
+
+#########  V2 ARCHITECTURE #########
+
+
+
+def dev_model_1():
+	model = Sequential() 
+	model.add(Dense(64, input_dim=30)) 
+	model.add(BatchNormalization()) 
+	model.add(LeakyReLU()) 
+	model.add(Dense(2)) 
+	model.add(Activation('softmax'))
+	return model 
+
+
+def dev_model_2():
+	model = Sequential() 
+	model.add(Dense(64, input_dim=30)) 
+	model.add(BatchNormalization()) 
+	model.add(LeakyReLU()) 
+	model.add(Dense(16)) 
+	model.add(BatchNormalization()) 
+	model.add(LeakyReLU()) 
+	model.add(Dense(2)) model.add(Activation('softmax'))
+	return model 
+
+def dev_model_3():
+	model = Sequential() 
+	model.add(Dense(64, input_dim=30,activity_regularizer=regularizers.l2(0.01))) model.add(BatchNormalization()) 
+	model.add(LeakyReLU()) 
+	model.add(Dense(16,activity_regularizer=regularizers.l2(0.01))) model.add(BatchNormalization()) 
+	model.add(LeakyReLU()) 
+	model.add(Dense(2)) 
+	model.add(Activation('softmax'))
+	return model 
+
+def dev_model_4():
+	model = Sequential()  
+	model.add(Dense(64, input_dim=30,activity_regularizer=regularizers.l2(0.01))) model.add(BatchNormalization()) 
+	model.add(LeakyReLU()) 
+	model.add(Dropout(0.5)) 
+	model.add(Dense(16,activity_regularizer=regularizers.l2(0.01))) model.add(BatchNormalization()) 
+	model.add(LeakyReLU()) 
+	model.add(Dense(2)) 
+	model.add(Activation('softmax'))
+	return model 
+
+
 
 #---------------------------------------
+
 
 
 
@@ -244,8 +296,15 @@ if __name__ == '__main__':
 	df_FB = get_data('FB')
 	df_FB_ = col_fix(df_FB)
 	dataset = get_train_data(df_FB_)
+
+	######## RUN V1 ARCHITECTURE  ######## 
+	
 	#dataset,trainPredict,testPredict,trainPredictPlot,testPredictPlot = one_input_LSTM_model_1(dataset)
 	dataset,trainPredict,testPredict,trainPredictPlot,testPredictPlot = one_input_LSTM_model_3(dataset)
+	
+	######## RUN V2 ARCHITECTURE ######## 
+
+
 	# plot 
 	#plt.plot(trainPredictPlot)
 	#plt.plot(testPredictPlot)
