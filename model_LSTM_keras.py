@@ -16,7 +16,8 @@ from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.recurrent import LSTM, GRU
 from keras.layers import Convolution1D, MaxPooling1D
 from keras.callbacks import Callback
-
+from keras.layers.normalization import BatchNormalization
+from keras.layers.advanced_activations import LeakyReLU, PReLU
 
 
 
@@ -245,12 +246,14 @@ def one_input_LSTM_model_3(dataset):
 # credit  
 # https://medium.com/machine-learning-world/neural-networks-for-algorithmic-trading-1-2-correct-time-series-forecasting-backtesting-9776bfd9e589
 
+
 def dev_model_1():
-    model = Sequential() 
-    model.add(Dense(64, input_dim=30)) 
+    model = Sequential()
+    model.add(Dense(1484, input_shape=(1, 1))) 
     model.add(BatchNormalization()) 
     model.add(LeakyReLU()) 
-    model.add(Dense(2)) 
+    model.add(Flatten())
+    model.add(Dense(1)) 
     model.add(Activation('softmax'))
     return model 
 
@@ -352,9 +355,11 @@ if __name__ == '__main__':
 	######## RUN V1 ARCHITECTURE  ######## 
 	
 	#dataset,trainPredict,testPredict,trainPredictPlot,testPredictPlot = one_input_LSTM_model_1(dataset)
-	dataset,trainPredict,testPredict,trainPredictPlot,testPredictPlot = one_input_LSTM_model_3(dataset)
+	#dataset,trainPredict,testPredict,trainPredictPlot,testPredictPlot = one_input_LSTM_model_3(dataset)
 	
 	######## RUN V2 ARCHITECTURE ######## 
+	model=dev_model_1()
+	dataset,trainPredict,testPredict,trainPredictPlot,testPredictPlot = V2_model_runner(dataset,model )
 
 
 	# plot 
