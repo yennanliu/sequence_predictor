@@ -256,6 +256,7 @@ def dev_model_1(dataset):
 	model.add(Flatten())
 	model.add(Dense(1)) 
 	model.add(Activation('softmax'))
+	model.compile(loss='mean_squared_error', optimizer='adam')
 	return model 
 
 
@@ -319,6 +320,8 @@ def V2_model_runner(dataset, model):
     testX = np.reshape(testX, (testX.shape[0], 1, testX.shape[1])) 
     ####### import pre-defined model #######
     print (model) 
+    # train the model
+    model.fit(trainX, trainY, epochs=20, batch_size=1, verbose=2)
     # make predictions
     trainPredict = model.predict(trainX)
     testPredict = model.predict(testX)
