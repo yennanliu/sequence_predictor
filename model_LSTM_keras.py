@@ -4,9 +4,8 @@
 import pandas as pd 
 import numpy as np
 import math
-#import matplotlib.pyplot as plt
-#%pylab inline
-
+import matplotlib.pyplot as plt
+#
 
 # DL
 from sklearn.preprocessing import MinMaxScaler
@@ -18,6 +17,8 @@ from keras.layers import Convolution1D, MaxPooling1D
 from keras.callbacks import Callback
 from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import LeakyReLU, PReLU
+from keras.callbacks import ReduceLROnPlateau
+
 
 
 
@@ -64,6 +65,18 @@ def create_dataset(dataset, look_back=1):
 		dataX.append(a)
 		dataY.append(dataset[i + look_back, 0])
 	return np.array(dataX), np.array(dataY)
+
+
+def plot_output(trainPredict,testPredict):
+	plt.plot(trainPredict)
+	plt.plot(testPredict)
+	#plt.xlim(900,1400)
+	plt.plot( df_FB_[['Open']])
+	plt.legend(['train-test-split','train_Predict', 'test_Predict','whole_dataset'])
+	plt.title('FB Stock Price Prdict with LSTM')
+	plt.xlabel('timestamp')
+	plt.ylabel('stock index')
+	plt.show()
 
 
 #---------------------------------------
@@ -243,8 +256,7 @@ def one_input_LSTM_model_3(dataset):
 #########  V2 ARCHITECTURE #########
 
 # V2 model 
-# credit  
-# https://medium.com/machine-learning-world/neural-networks-for-algorithmic-trading-1-2-correct-time-series-forecasting-backtesting-9776bfd9e589
+# credit  : https://medium.com/machine-learning-world/neural-networks-for-algorithmic-trading-1-2-correct-time-series-forecasting-backtesting-9776bfd9e589
 
 
 def dev_model_1(dataset):
@@ -304,48 +316,61 @@ def dev_model_4():
 # V2 ARCHITECTURE runner 
 
 def V2_model_runner(dataset, model):
-    # normalize the dataset
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    dataset = scaler.fit_transform(dataset)
-    # split into train and test sets
-    train_size = int(len(dataset) * 0.67)
-    test_size = len(dataset) - train_size
-    train, test = dataset[0:train_size,:], dataset[train_size:len(dataset),:]
-    # reshape into X=t and Y=t+1
-    look_back = 1
-    trainX, trainY = create_dataset(train, look_back)
-    testX, testY = create_dataset(test, look_back)
-    # reshape input to be [samples, time steps, features]
-    trainX = np.reshape(trainX, (trainX.shape[0], 1, trainX.shape[1]))
-    testX = np.reshape(testX, (testX.shape[0], 1, testX.shape[1])) 
-    ####### import pre-defined model #######
-    print (model) 
-    # train the model
-    model.fit(trainX, trainY, epochs=20, batch_size=1, verbose=2)
-    # make predictions
-    trainPredict = model.predict(trainX)
-    testPredict = model.predict(testX)
-    # invert predictions
-    trainPredict = scaler.inverse_transform(trainPredict)
-    trainY = scaler.inverse_transform([trainY])
-    testPredict = scaler.inverse_transform(testPredict)
-    testY = scaler.inverse_transform([testY])
-    # calculate root mean squared error
-    trainScore = math.sqrt(mean_squared_error(trainY[0], trainPredict[:,0]))
-    print('Train Score: %.2f RMSE' % (trainScore))
-    testScore = math.sqrt(mean_squared_error(testY[0], testPredict[:,0]))
-    print('Test Score: %.2f RMSE' % (testScore))
-    # shift train predictions for plotting
-    trainPredictPlot = np.empty_like(dataset)
-    trainPredictPlot[:, :] = np.nan
-    trainPredictPlot[look_back:len(trainPredict)+look_back, :] = trainPredict
-    # shift test predictions for plotting
-    testPredictPlot = np.empty_like(dataset)
-    testPredictPlot[:, :] = np.nan
-    testPredictPlot[len(trainPredict)+(look_back*2)+1:len(dataset)-1, :] = testPredict
-    print (model.summary())
-    return  dataset,trainPredict,testPredict,trainPredictPlot,testPredictPlot
+	# normalize the dataset
+	scaler = MinMaxScaler(feature_range=(0, 1))
+	dataset = scaler.fit_transform(dataset)
+	# split into train and test sets
+	train_size = int(len(dataset) * 0.67)
+	test_size = len(dataset) - train_size
+	train, test = dataset[0:train_size,:], dataset[train_size:len(dataset),:]
+	# reshape into X=t and Y=t+1
+	look_back = 1
+	trainX, trainY = create_dataset(train, look_back)
+	testX, testY = create_dataset(test, look_back)
+	# reshape input to be [samples, time steps, features]
+	trainX = np.reshape(trainX, (trainX.shape[0], 1, trainX.shape[1]))
+	testX = np.reshape(testX, (testX.shape[0], 1, testX.shape[1])) 
+	####### import pre-defined model #######
+	print (model) 
+	# train the model 
+	#history = model.fit(trainX, trainY, epochs=20, batch_size=1, verbose=2)
+	reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.9, patience=5, min_lr=0.000001, verbose=1) 
+	history = model.fit(trainX, trainY, nb_epoch = 50,batch_size = 128, verbose=1, validation_data=(testX, testY),shuffle=True, callbacks=[reduce_lr])
+	# --------- plot the training history --------- #
+	print ('-------------------------------------')
+	plt.figure() 
+	plt.plot(history.history['loss']) 
+	plt.plot(history.history['val_loss']) 
+	plt.title('model loss') 
+	plt.ylabel('loss') 
+	plt.xlabel('epoch') 
+	plt.legend(['train', 'test'], loc='best') 
+	plt.show()
+	print ('-------------------------------------')
 
+	# make predictions
+	trainPredict = model.predict(trainX)
+	testPredict = model.predict(testX)
+	# invert predictions
+	trainPredict = scaler.inverse_transform(trainPredict)
+	trainY = scaler.inverse_transform([trainY])
+	testPredict = scaler.inverse_transform(testPredict)
+	testY = scaler.inverse_transform([testY])
+	# calculate root mean squared error
+	trainScore = math.sqrt(mean_squared_error(trainY[0], trainPredict[:,0]))
+	print('Train Score: %.2f RMSE' % (trainScore))
+	testScore = math.sqrt(mean_squared_error(testY[0], testPredict[:,0]))
+	print('Test Score: %.2f RMSE' % (testScore))
+	# shift train predictions for plotting
+	trainPredictPlot = np.empty_like(dataset)
+	trainPredictPlot[:, :] = np.nan
+	trainPredictPlot[look_back:len(trainPredict)+look_back, :] = trainPredict
+	# shift test predictions for plotting
+	testPredictPlot = np.empty_like(dataset)
+	testPredictPlot[:, :] = np.nan
+	testPredictPlot[len(trainPredict)+(look_back*2)+1:len(dataset)-1, :] = testPredict
+	print (model.summary())
+	return  dataset,trainPredict,testPredict,trainPredictPlot,testPredictPlot
 
 
 #---------------------------------------
@@ -356,20 +381,17 @@ if __name__ == '__main__':
 	df_FB_ = col_fix(df_FB)
 	dataset = get_train_data(df_FB_)
 
-	######## RUN V1 ARCHITECTURE  ######## 
+	# 1) ######## RUN V1 ARCHITECTURE  ######## 
 	
 	#dataset,trainPredict,testPredict,trainPredictPlot,testPredictPlot = one_input_LSTM_model_1(dataset)
 	#dataset,trainPredict,testPredict,trainPredictPlot,testPredictPlot = one_input_LSTM_model_3(dataset)
 	
-	######## RUN V2 ARCHITECTURE ######## 
+	# 2) ######## RUN V2 ARCHITECTURE ######## 
 	model=dev_model_1(dataset)
 	dataset,trainPredict,testPredict,trainPredictPlot,testPredictPlot = V2_model_runner(dataset,model )
 
-
-	# plot 
-	#plt.plot(trainPredictPlot)
-	#plt.plot(testPredictPlot)
-	#plt.plot( df_FB_[['Open']])
+	# plot the predict output 
+	plot_output(trainPredictPlot,testPredictPlot)
 
 
 
