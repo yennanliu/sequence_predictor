@@ -247,15 +247,16 @@ def one_input_LSTM_model_3(dataset):
 # https://medium.com/machine-learning-world/neural-networks-for-algorithmic-trading-1-2-correct-time-series-forecasting-backtesting-9776bfd9e589
 
 
-def dev_model_1():
-    model = Sequential()
-    model.add(Dense(1484, input_shape=(1, 1))) 
-    model.add(BatchNormalization()) 
-    model.add(LeakyReLU()) 
-    model.add(Flatten())
-    model.add(Dense(1)) 
-    model.add(Activation('softmax'))
-    return model 
+def dev_model_1(dataset):
+	print (dataset)
+	model = Sequential()
+	model.add(Dense(dataset.shape[0], input_shape=(1, 1))) 
+	model.add(BatchNormalization()) 
+	model.add(LeakyReLU()) 
+	model.add(Flatten())
+	model.add(Dense(1)) 
+	model.add(Activation('softmax'))
+	return model 
 
 
 def dev_model_2():
@@ -358,7 +359,7 @@ if __name__ == '__main__':
 	#dataset,trainPredict,testPredict,trainPredictPlot,testPredictPlot = one_input_LSTM_model_3(dataset)
 	
 	######## RUN V2 ARCHITECTURE ######## 
-	model=dev_model_1()
+	model=dev_model_1(dataset)
 	dataset,trainPredict,testPredict,trainPredictPlot,testPredictPlot = V2_model_runner(dataset,model )
 
 
