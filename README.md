@@ -22,6 +22,7 @@
 	
 #### data 
 - http://quotes.wsj.com/AAPL/historical-prices
+- https://www.kaggle.com/borismarjanovic/price-volume-data-for-all-us-stocks-etfs/data
 - https://datamarket.com/data/list/?q=cat:g26%20provider:tsdl
 - https://www.kaggle.com/mczielinski/bitcoin-historical-data/kernels
 
