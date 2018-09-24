@@ -126,16 +126,19 @@ def Emojify_V3(input_shape, word_to_vec_map, word_to_index):
     X = LSTM(128, return_sequences=True)(embeddings)
     # Add dropout with a probability of 0.5
     X = Dropout(0.5)(X)
+
+
+    # -------------- add a new LSTM layer here  --------------
+    X = LSTM(128, return_sequences=True)(embeddings)
+    X = Dropout(0.5)(X)
+    # -------------- add a new LSTM layer here  --------------
+
+
     # Propagate X trough another LSTM layer with 128-dimensional hidden state
     # Be careful, the returned output should be a single hidden state, not a batch of sequences.
     X = LSTM(256, return_sequences=False)(X)
     # Add dropout with a probability of 0.5
     X = Dropout(0.5)(X)
-
-    # -------------- add a new LSTM layer here  --------------
-    #X = LSTM(128, return_sequences=False)(X)
-    #X = Dropout(0.5)(X)
-    # -------------- add a new LSTM layer here  --------------
 
     # Propagate X through a Dense layer with softmax activation to get back a batch of 5-dimensional vectors.
     X = Dense(5)(X)
