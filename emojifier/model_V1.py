@@ -11,6 +11,7 @@ from keras.preprocessing import sequence
 from keras.initializers import glorot_uniform
 np.random.seed(1)
 import emoji
+from sklearn.metrics import confusion_matrix
 
 # UDF 
 from emo_utils import *
@@ -128,8 +129,11 @@ def Emojify_V3(input_shape, word_to_vec_map, word_to_index):
     X = Dropout(0.5)(X)
 
 
-    # -------------- add a new LSTM layer here  --------------
+    # -------------- add 2 new LSTM layer here  --------------
     X = LSTM(128, return_sequences=True)(embeddings)
+    X = Dropout(0.5)(X)
+    
+    X = LSTM(256, return_sequences=True)(embeddings)
     X = Dropout(0.5)(X)
     # -------------- add a new LSTM layer here  --------------
 
@@ -161,43 +165,49 @@ def Emojify_V3(input_shape, word_to_vec_map, word_to_index):
 # model run func 
 
 def main():
-	# load the data 
-	X_train, Y_train = read_csv('data/train_emoji.csv')
-	X_test, Y_test = read_csv('data/tesss.csv')
-	maxLen = len(max(X_train, key=len).split())
-	Y_oh_train = convert_to_one_hot(Y_train, C = 5)
-	Y_oh_test = convert_to_one_hot(Y_test, C = 5)
-	"""
-	# need to download the extra dataset via 
-	# https://www.kaggle.com/watts2/glove6b50dtxt/version/1#
-	# https://nlp.stanford.edu/projects/glove/
-	# via kaggle API : kaggle datasets download -d watts2/glove6b50dtxt
-	"""
-	word_to_index, index_to_word, word_to_vec_map = read_glove_vecs('data/glove.6B.50d.txt')
-	embedding_layer = pretrained_embedding_layer(word_to_vec_map, word_to_index)
-	print("weights[0][1][3] =", embedding_layer.get_weights()[0][1][3])
-	model = Emojify_V3((maxLen,), word_to_vec_map, word_to_index)
-	model.summary()
-	model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-	X_train_indices = sentences_to_indices(X_train, word_to_index, maxLen)
-	Y_train_oh = convert_to_one_hot(Y_train, C = 5)
-	model.fit(X_train_indices, Y_train_oh, epochs = 50, batch_size = 32, shuffle=True)
-	X_test_indices = sentences_to_indices(X_test, word_to_index, max_len = maxLen)
-	Y_test_oh = convert_to_one_hot(Y_test, C = 5)
-	loss, acc = model.evaluate(X_test_indices, Y_test_oh)
-	print()
-	print("Test accuracy = ", acc)
-	# This code allows you to see the mislabelled examples
-	C = 5
-	y_test_oh = np.eye(C)[Y_test.reshape(-1)]
-	X_test_indices = sentences_to_indices(X_test, word_to_index, maxLen)
-	pred = model.predict(X_test_indices)
-	for i in range(len(X_test)):
-		x = X_test_indices
-		num = np.argmax(pred[i])
-		#if(num != Y_test[i]):
-		print('Expected emoji:'+ label_to_emoji(Y_test[i]) + ' prediction: '+ X_test[i] + label_to_emoji(num).strip())
-
+    # load the data 
+    X_train, Y_train = read_csv('data/train_emoji.csv')
+    X_test, Y_test = read_csv('data/tesss.csv')
+    maxLen = len(max(X_train, key=len).split())
+    Y_oh_train = convert_to_one_hot(Y_train, C = 5)
+    Y_oh_test = convert_to_one_hot(Y_test, C = 5)
+    """
+    # need to download the extra dataset via 
+    # https://www.kaggle.com/watts2/glove6b50dtxt/version/1#
+    # https://nlp.stanford.edu/projects/glove/
+    # via kaggle API : kaggle datasets download -d watts2/glove6b50dtxt
+    """
+    word_to_index, index_to_word, word_to_vec_map = read_glove_vecs('data/glove.6B.50d.txt')
+    embedding_layer = pretrained_embedding_layer(word_to_vec_map, word_to_index)
+    print("weights[0][1][3] =", embedding_layer.get_weights()[0][1][3])
+    model = Emojify_V3((maxLen,), word_to_vec_map, word_to_index)
+    model.summary()
+    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    X_train_indices = sentences_to_indices(X_train, word_to_index, maxLen)
+    Y_train_oh = convert_to_one_hot(Y_train, C = 5)
+    model.fit(X_train_indices, Y_train_oh, epochs = 50, batch_size = 32, shuffle=True)
+    X_test_indices = sentences_to_indices(X_test, word_to_index, max_len = maxLen)
+    Y_test_oh = convert_to_one_hot(Y_test, C = 5)
+    loss, acc = model.evaluate(X_test_indices, Y_test_oh)
+    print()
+    print ('####  Test accuracy  ####')
+    print("Test accuracy = ", acc)
+    # This code allows you to see the mislabelled examples
+    C = 5
+    y_test_oh = np.eye(C)[Y_test.reshape(-1)]
+    X_test_indices = sentences_to_indices(X_test, word_to_index, maxLen)
+    pred = model.predict(X_test_indices)
+    # collect X_test pred 
+    X_test_pred = []
+    print ('####  pred output  ####')
+    for i in range(len(X_test)):
+        x = X_test_indices
+        num = np.argmax(pred[i])
+        X_test_pred.append(num)
+    #if(num != Y_test[i]):
+        print('Expected emoji:'+ label_to_emoji(Y_test[i]) + ' prediction: '+ X_test[i] + label_to_emoji(num).strip())
+    print ('####  confusion_matrix  ####')
+    print (confusion_matrix(np.array(X_test_pred),Y_test))
 
 
 
