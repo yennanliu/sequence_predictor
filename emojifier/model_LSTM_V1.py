@@ -165,6 +165,29 @@ def Emojify_V3(input_shape, word_to_vec_map, word_to_index):
     return model
 
 
+def Emojify_V4(input_shape, word_to_vec_map, word_to_index):
+    sentence_indices = Input(input_shape, dtype = 'int32')
+    # Create the embedding layer pretrained with GloVe Vectors (≈1 line)
+    embedding_layer = pretrained_embedding_layer(word_to_vec_map, word_to_index)  
+    # Propagate sentence_indices through your embedding layer, you get back the embeddings
+    embeddings = embedding_layer(sentence_indices)
+    
+    # Propagate the embeddings through an LSTM layer with 128-dimensional hidden state
+    # Be careful, the returned output should be a batch of sequences.
+    X = LSTM(130, return_sequences=True)(embeddings)
+    X = Dropout(0.5)(X)
+    X = LSTM(130, return_sequences=True)(embeddings)
+    X = Dropout(0.5)(X)  
+    X = LSTM(260, return_sequences=True)(embeddings)
+    X = Dropout(0.5)(X)
+    X = LSTM(260, return_sequences=False)(X)
+    X = Dropout(0.5)(X)
+    X = Dense(5)(X)
+    X = Activation('sigmoid')(X)
+    model = Model(inputs=sentence_indices, outputs=X)    
+    return model
+
+
 #-------------------------------------------------
 
 # model run func 
@@ -185,7 +208,10 @@ def main():
     word_to_index, index_to_word, word_to_vec_map = read_glove_vecs('data/glove.6B.50d.txt')
     embedding_layer = pretrained_embedding_layer(word_to_vec_map, word_to_index)
     print("weights[0][1][3] =", embedding_layer.get_weights()[0][1][3])
-    model = Emojify_V3((maxLen,), word_to_vec_map, word_to_index)
+    # V3 MODEL 
+    #model = Emojify_V3((maxLen,), word_to_vec_map, word_to_index)
+    # V3 MODEL 
+    model = Emojify_V4((maxLen,), word_to_vec_map, word_to_index)
     model.summary()
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     X_train_indices = sentences_to_indices(X_train, word_to_index, maxLen)
