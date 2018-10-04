@@ -4,7 +4,7 @@
 # V2 OP
 import numpy as np
 from keras.models import Model
-from keras.layers import Dense, Input, Dropout, LSTM, Activation
+from keras.layers import Dense, Input, Dropout, LSTM, Activation, RNN,GRU
 from keras.layers.embeddings import Embedding
 from keras.preprocessing import sequence
 from keras.initializers import glorot_uniform
@@ -104,8 +104,21 @@ def pretrained_embedding_layer(word_to_vec_map, word_to_index):
 
 #-------------------------------------------------
 # model  
-def Emojify_RNN_modec():
-    pass 
+def Emojify_RNN_model(input_shape, word_to_vec_map, word_to_index):
+    sentence_indices = Input(input_shape, dtype = 'int32')
+    embedding_layer = pretrained_embedding_layer(word_to_vec_map, word_to_index)
+    embeddings = embedding_layer(sentence_indices)
+    # https://stackoverflow.com/questions/45989610/setting-up-the-input-on-an-rnn-in-keras
+    # Desired result is a sequence with same length, we will use return_sequences=True. (Else, you'd get only one result).
+    X = GRU(256, return_sequences=True)(embeddings)
+    X = Dropout(0.5)(X)
+    X = Dense(5)(X)
+    X = Activation('sigmoid')(X)
+    model = Model(inputs=sentence_indices, outputs=X)  
+    return model
+
+
+
 
 
 #-------------------------------------------------
@@ -113,8 +126,6 @@ def Emojify_RNN_modec():
 # model run func 
 
 def main():
-    pass
-    """
     # load the data 
     X_train, Y_train = read_csv('data/train_emoji.csv')
     X_test, Y_test = read_csv('data/tesss.csv')
@@ -130,7 +141,43 @@ def main():
     word_to_index, index_to_word, word_to_vec_map = read_glove_vecs('data/glove.6B.50d.txt')
     embedding_layer = pretrained_embedding_layer(word_to_vec_map, word_to_index)
     print("weights[0][1][3] =", embedding_layer.get_weights()[0][1][3])
-    """ 
+    #### load RNN model
+    model = Emojify_RNN_model((maxLen,), word_to_vec_map, word_to_index)
+    ####
+    model.summary()
+    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    X_train_indices = sentences_to_indices(X_train, word_to_index, maxLen)
+    Y_train_oh = convert_to_one_hot(Y_train, C = 5)
+    history = model.fit(X_train_indices, Y_train_oh, epochs = 50, batch_size = 32, shuffle=True)
+    X_test_indices = sentences_to_indices(X_test, word_to_index, max_len = maxLen)
+    Y_test_oh = convert_to_one_hot(Y_test, C = 5)
+    loss, acc = model.evaluate(X_test_indices, Y_test_oh)
+    print ('####  loss    (train data) ####')
+    print (history.history['loss'])
+    print ('####  accuracy   (train data)  ####')
+    print (history.history['acc'])
+    print()
+    print ('####  Test accuracy    (test data) ####')
+    print("Test accuracy = ", acc)
+    # This code allows you to see the mislabelled examples
+    C = 5
+    y_test_oh = np.eye(C)[Y_test.reshape(-1)]
+    X_test_indices = sentences_to_indices(X_test, word_to_index, maxLen)
+    pred = model.predict(X_test_indices)
+    # collect X_test pred 
+    X_test_pred = []
+    print ('####  pred output  (test data) ####')
+    for i in range(len(X_test)):
+        x = X_test_indices
+        num = np.argmax(pred[i])
+        X_test_pred.append(num)
+    #if(num != Y_test[i]):
+        print('Expected emoji:'+ label_to_emoji(Y_test[i]) + ' prediction: '+ X_test[i] + label_to_emoji(num).strip())
+    print ('####  confusion_matrix (test data) ####')
+    print (confusion_matrix(np.array(X_test_pred),Y_test))
+    #plot_confusion_matrix(np.array(X_test_pred),Y_test)
+
+
 
 
 #-------------------------------------------------
