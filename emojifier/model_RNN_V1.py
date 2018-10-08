@@ -4,13 +4,16 @@
 # V2 OP
 import numpy as np
 from keras.models import Model
-from keras.layers import Dense, Input, Dropout, LSTM, Activation, RNN,GRU
+from keras.layers import Dense, Input, Dropout, LSTM, Activation, RNN,GRU,SimpleRNNCell
 from keras.layers.embeddings import Embedding
 from keras.preprocessing import sequence
 from keras.initializers import glorot_uniform
+import keras.backend as K
+import keras
 import emoji
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
+
 
 # UDF 
 from emo_utils import *
@@ -102,6 +105,30 @@ def pretrained_embedding_layer(word_to_vec_map, word_to_index):
 
 
 
+
+class MinimalRNNCell(keras.layers.Layer):
+
+    def __init__(self, units, **kwargs):
+        self.units = units
+        self.state_size = units
+        super(MinimalRNNCell, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        self.kernel = self.add_weight(shape=(input_shape[-1], self.units),
+                                      initializer='uniform',
+                                      name='kernel')
+        self.recurrent_kernel = self.add_weight(
+            shape=(self.units, self.units),
+            initializer='uniform',
+            name='recurrent_kernel')
+        self.built = True
+
+    def call(self, inputs, states):
+        prev_output = states[0]
+        h = K.dot(inputs, self.kernel)
+        output = h + K.dot(prev_output, self.recurrent_kernel)
+        return output, [output]
+ 
 #-------------------------------------------------
 # model  
 def Emojify_RNN_model(input_shape, word_to_vec_map, word_to_index):
@@ -110,7 +137,9 @@ def Emojify_RNN_model(input_shape, word_to_vec_map, word_to_index):
     embeddings = embedding_layer(sentence_indices)
     # https://stackoverflow.com/questions/45989610/setting-up-the-input-on-an-rnn-in-keras
     # Desired result is a sequence with same length, we will use return_sequences=True. (Else, you'd get only one result).
-    X = GRU(256, return_sequences=True)(embeddings)
+    # keras.layers.RNN(cell, return_sequences=False, return_state=False, go_backwards=False, stateful=False, unroll=False)
+    cells = [MinimalRNNCell(32), MinimalRNNCell(64)]
+    X = RNN(cells, return_sequences=True)(embeddings)
     X = Dropout(0.5)(X)
     X = Dense(5)(X)
     X = Activation('sigmoid')(X)
