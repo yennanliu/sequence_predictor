@@ -57,7 +57,7 @@ def sentence_to_avg(sentence, word_to_vec_map):
 ############# MODEL  #############
 
 
-def model(X, Y, word_to_vec_map, num_iterations, learning_rate = 0.01 ):
+def model(X, Y, word_to_vec_map, learning_rate = 0.01, num_iterations = 500):
     """
     Model to train word vector representations in numpy.
     
@@ -123,7 +123,7 @@ def model(X, Y, word_to_vec_map, num_iterations, learning_rate = 0.01 ):
 #-------------------------------------------------
 # main func 
 
-def main(num_iterations):
+def main():
     # load the data 
     X_train, Y_train = read_csv('data/train_emoji.csv')
     X_test, Y_test = read_csv('data/tesss.csv')
@@ -132,7 +132,7 @@ def main(num_iterations):
     Y_oh_train = convert_to_one_hot(Y_train, C = 5)
     Y_oh_test = convert_to_one_hot(Y_test, C = 5)
     # train on training set 
-    pred, W, b = model(X_train, Y_train, num_iterations, word_to_vec_map)
+    pred, W, b = model(X_train, Y_train, word_to_vec_map)
     #print(np.array(pred))
     print("Training set:")
     pred_train = predict(X_train, Y_train, W, b, word_to_vec_map)
@@ -146,7 +146,7 @@ def main(num_iterations):
 
 
 if __name__ == '__main__':
-    main(500)
+    main()
 
 
 
