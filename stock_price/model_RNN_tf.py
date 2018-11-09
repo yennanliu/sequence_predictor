@@ -68,42 +68,40 @@ def batch_generator(batch_size, sequence_length):
             y_batch[i] = y_train_scaled[idx:idx+sequence_length]
         
         yield (x_batch, y_batch)
-
-
-
+        
+        
 def loss_mse_warmup(y_true, y_pred):
-	"""
-	Calculate the Mean Squared Error between y_true and y_pred,
-	but ignore the beginning "warmup" part of the sequences.
+    """
+    Calculate the Mean Squared Error between y_true and y_pred,
+    but ignore the beginning "warmup" part of the sequences.
+    
+    y_true is the desired output.
+    y_pred is the model's output.
+    """
 
-	y_true is the desired output.
-	y_pred is the model's output.
-	"""
+    # The shape of both input tensors are:
+    # [batch_size, sequence_length, num_y_signals].
 
-	# The shape of both input tensors are:
-	# [batch_size, sequence_length, num_y_signals].
+    # Ignore the "warmup" parts of the sequences
+    # by taking slices of the tensors.
+    y_true_slice = y_true[:, warmup_steps:, :]
+    y_pred_slice = y_pred[:, warmup_steps:, :]
 
-	# Ignore the "warmup" parts of the sequences
-	# by taking slices of the tensors.
-	y_true_slice = y_true[:, warmup_steps:, :]
-	y_pred_slice = y_pred[:, warmup_steps:, :]
+    # These sliced tensors both have this shape:
+    # [batch_size, sequence_length - warmup_steps, num_y_signals]
 
-	# These sliced tensors both have this shape:
-	# [batch_size, sequence_length - warmup_steps, num_y_signals]
+    # Calculate the MSE loss for each value in these tensors.
+    # This outputs a 3-rank tensor of the same shape.
+    loss = tf.losses.mean_squared_error(labels=y_true_slice,
+                                        predictions=y_pred_slice)
 
-	# Calculate the MSE loss for each value in these tensors.
-	# This outputs a 3-rank tensor of the same shape.
-	loss = tf.losses.mean_squared_error(labels=y_true_slice,
-	                                    predictions=y_pred_slice)
+    # Keras may reduce this across the first axis (the batch)
+    # but the semantics are unclear, so to be sure we use
+    # the loss across the entire tensor, we reduce it to a
+    # single scalar with the mean function.
+    loss_mean = tf.reduce_mean(loss)
 
-	# Keras may reduce this across the first axis (the batch)
-	# but the semantics are unclear, so to be sure we use
-	# the loss across the entire tensor, we reduce it to a
-	# single scalar with the mean function.
-	loss_mean = tf.reduce_mean(loss)
-
-	return loss_mean
-
+    return loss_mean
 
 # -----------------------------------
 
@@ -112,56 +110,78 @@ if __name__ == '__main__':
 	col_name ='Open'
 	df_FB = get_data('FB')
 	df_FB_ = col_fix(df_FB)
-	dataset = df_FB_[['Open']].values.astype('float32')
-	scaler = MinMaxScaler(feature_range=(0, 1))
-	dataset = scaler.fit_transform(dataset)
+	######### DATA PREPROCESS V2  #########
+	x_data = df_FB_.iloc[:,1:].values
+	y_data = df_FB_[['Open']].values.astype('float32')
 	# split into train and test sets
-	train_size = int(len(dataset) * 0.67)
-	test_size = len(dataset) - train_size
-	train, test = dataset[0:train_size,:], dataset[train_size:len(dataset),:]
-	# reshape into X=t and Y=t+1
-	look_back = 1
-	trainX, trainY = create_dataset(train, look_back)
-	testX, testY = create_dataset(test, look_back)
-	# reshape input to be [samples, time steps, features]
-	trainX = np.reshape(trainX, (trainX.shape[0], 1, trainX.shape[1]))
-	testX = np.reshape(testX, (testX.shape[0], 1, testX.shape[1]))
-	validation_data = (np.expand_dims(testX, axis=0),
-                   	np.expand_dims(testY, axis=0))
-	print('trainX.shape :',trainX.shape)
-	print('trainY.shape :' , trainY.shape) 
-	# generate batch 
-	batch_size = 256
-	sequence_length  = 10
-	num_x_signals = trainX.shape[1] 
-	num_y_signals = trainY.shape[0]
-	train_split = 0.8
-	num_train = int(train_split * len(trainX))
+	num_data = len(x_data)
+	train_split = 0.9
+	num_train = int(train_split * num_data)
+	num_test = num_data - num_train
+	x_train = x_data[0:num_train]
+	x_test = x_data[num_train:]
+	y_train = y_data[0:num_train]
+	y_test = y_data[num_train:]
+	num_x_signals = x_data.shape[1]
+	num_y_signals = y_data.shape[1]
+	# RESCALE DATA 
+	x_scaler = MinMaxScaler()
+	x_train_scaled = x_scaler.fit_transform(x_train)
+	x_test_scaled = x_scaler.transform(x_test)
+	y_scaler = MinMaxScaler()
+	y_train_scaled = y_scaler.fit_transform(y_train)
+	y_test_scaled = y_scaler.transform(y_test)
+	# RECHECK DATA SHAPE 
+	print(x_train_scaled.shape)
+	print(y_train_scaled.shape)
+	# GET BATCH DATA 
+	batch_size = 4
+	sequence_length = 24 
+	sequence_length
+	generator = batch_generator(batch_size=batch_size,
+	                            sequence_length=sequence_length)
+	x_batch, y_batch = next(generator)
+	print(x_batch.shape)
+	print(y_batch.shape)
+	batch = 0   # First sequence in the batch.
+	signal = 0  # First signal from the 20 input-signals.
+	seq = x_batch[batch, :, signal]
+	# VALIDATION SET 
+	validation_data = (np.expand_dims(x_test_scaled, axis=0),
+	                   np.expand_dims(y_test_scaled, axis=0))
 
-	#generator = batch_generator(batch_size=batch_size,
-    #                        sequence_length=sequence_length)
-
-	#x_batch, y_batch = next(generator)
-	#print(x_batch.shape)
-	#print(y_batch.shape)
-
-
-	# ---------- DATA PREPROCESS ----------
-
-
-	# ---------- tf RNN model  ----------
+	### --------------  MODEL  --------------###
 	model = Sequential()
 	model.add(GRU(units=512,
-              return_sequences=True,
-              input_shape=(None, num_x_signals,)))
+	              return_sequences=True,
+	              input_shape=(None, num_x_signals,)))
+
 	model.add(Dense(num_y_signals, activation='sigmoid'))
-	warmup_steps = 50
+
+	### -------------- MODEL TRAIN (TRAIN SET)  --------------### 
+	warmup_steps = 30
 	optimizer = RMSprop(lr=1e-3)
 	model.compile(loss=loss_mse_warmup, optimizer=optimizer)
-	print (model.summary())
-	model.fit_generator(generator=(trainX,trainY),
-                    epochs=20,
-                    steps_per_epoch=100)
+	model.summary()
+	callback_reduce_lr = ReduceLROnPlateau(monitor='val_loss',
+	                                       factor=0.1,
+	                                       min_lr=1e-4,
+	                                       patience=0,
+	                                       verbose=1)
+	callbacks = [callback_reduce_lr]
+	model.fit_generator(generator=generator,
+	                    epochs=5,
+	                    steps_per_epoch=10,
+	                    validation_data=validation_data,
+	                    callbacks=callbacks)
+
+
+	### -------------- MODEL TEST (TEST SET)  -------------- ###
+
+	result = model.evaluate(x=np.expand_dims(x_test_scaled, axis=0),
+	                        y=np.expand_dims(y_test_scaled, axis=0))
+	print("loss (test-set):", result)
+
 
 
 
